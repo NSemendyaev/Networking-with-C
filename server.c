@@ -5,10 +5,16 @@ char *int_to_str(int n);
 
 int main(void)
 {
+    // Set-up MIME table
     HT *MIME_TYPES = create_ht();
     ht_put(MIME_TYPES, ".html", "text/html");
     ht_put(MIME_TYPES, ".css", "text/css");
+    ht_put(MIME_TYPES, ".ico", "image/png");
 
+    // Get parent's process ID
+    pid_t parent = getpid();
+
+    // Set-up server's address
     struct sockaddr_in address = {0};
     address.sin_family = AF_INET;
     address.sin_port = htons(8080);
@@ -24,6 +30,11 @@ int main(void)
         int client = accept(server, NULL, NULL);
 
         // Need a new process/thread
+        pid_t child = fork();
+        if (getpid() == parent)
+        {
+            continue;
+        }
 
         HTTP_REQUEST req = {
             .method = NULL,
@@ -145,12 +156,12 @@ int main(void)
             head_ptr = head;
             ssize_t bsent = 0;
             // send(client, head_ptr, head_size, 0);
-            while ((bsent = send(client, head_ptr, head_size, 0)) > 0)
+            while ((bsent = send(client, head_ptr, strlen(head_ptr), 0)) > 0)
             {
                 head_ptr += bsent;
                 head_size -= bsent;
             }
-            printf("The headers has been sent\n");
+            printf("The headers have been sent\n");
 
             // Send body
             char data[4096];
@@ -177,6 +188,9 @@ int main(void)
         // else if (strcmp(method, DELETE) == 0)
         //     fprintf(stdout, "DELETE method\n");
         // else fprintf(stdout, "Invalid method\n");
+
+        // Child process is done
+        exit(0);
     }
     close(server);
     return 0;
